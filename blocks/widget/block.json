@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "webvouch/widget",
+  "version": "0.3.0",
+  "title": "WebVouch widget",
+  "category": "widgets",
+  "icon": "star-filled",
+  "description": "Add a WebVouch rating or reviews widget.",
+  "textdomain": "webvouch-for-woocommerce",
+  "attributes": {
+    "widgetType": {
+      "type": "string",
+      "default": "text-badge"
+    }
+  },
+  "supports": {
+    "align": ["wide", "full"],
+    "html": false
+  }
+}

@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+      - name: Verify tag and plugin versions
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          constant=$(sed -n "s/^define( 'WEBVOUCH_WC_VERSION', '\([^']*\)' );$/\1/p" webvouch-for-woocommerce.php)
+          header=$(sed -n 's/^ \* Version:[[:space:]]*\([^[:space:]]*\).*$/\1/p' webvouch-for-woocommerce.php)
+          stable=$(sed -n 's/^Stable tag:[[:space:]]*\([^[:space:]]*\).*$/\1/p' readme.txt)
+          test "$version" = "$constant"
+          test "$version" = "$header"
+          test "$version" = "$stable"
+      - name: Test
+        run: |
+          find . -type f -name '*.php' -not -path './dist/*' -print0 | xargs -0 -n1 php -l
+          php tests/run.php
+      - name: Build release package
+        run: ./scripts/build-plugin.sh
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/webvouch-for-woocommerce-$version.zip" \
+            dist/latest.json \
+            dist/SHA256SUMS \
+            --verify-tag \
+            --generate-notes \
+            --title "WebVouch for WooCommerce $version"
