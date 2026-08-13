@@ -43,7 +43,7 @@ jobs:
           name: webvouch-for-woocommerce
           path: |
             dist/webvouch-for-woocommerce-*.zip
+            dist/webvouch-for-woocommerce.zip
             dist/latest.json
             dist/SHA256SUMS
           if-no-files-found: error
-
