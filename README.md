@@ -108,7 +108,17 @@ Security vulnerabilities must be reported privately through the process in `SECU
 2. Run the tests and deterministic build locally.
 3. Commit the release and create a matching tag, for example `v0.3.0`.
 4. Push the tag. The release workflow verifies the version, rebuilds the package, and creates the GitHub Release.
-5. Mirror the exact versioned ZIP and `latest.json` to the WebVouch download endpoint without rebuilding them.
+5. The tag-only release workflow publishes the exact versioned and stable ZIPs,
+   `SHA256SUMS`, and finally `latest.json` to the public WebVouch downloads
+   bucket. The manifest is published last so it never advertises a missing
+   package. Versioned objects are immutable: a retry may reuse identical bytes,
+   but the workflow refuses to replace a released version with different bytes.
+
+The workflow uses the tag-restricted GitHub environment `release`. It requires
+the environment secrets `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`, plus the
+environment variables `S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION`, and
+`S3_PUBLIC_BASE_URL`. These credentials are available only to release jobs and
+must never be exposed to pull request workflows.
 
 ## Support
 

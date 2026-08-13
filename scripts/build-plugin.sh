@@ -2,7 +2,7 @@
 
 set -eu
 
-repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+repo_dir=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 plugin_slug=webvouch-for-woocommerce
 output_dir="$repo_dir/dist"
 version=$(sed -n "s/^define( 'WEBVOUCH_WC_VERSION', '\([^']*\)' );$/\1/p" "$repo_dir/webvouch-for-woocommerce.php")
@@ -69,6 +69,9 @@ cat > "$output_dir/latest.json" <<EOF
 }
 EOF
 
-printf '%s  %s\n' "$checksum" "$plugin_slug-$version.zip" > "$output_dir/SHA256SUMS"
+{
+	printf '%s  %s\n' "$checksum" "$plugin_slug-$version.zip"
+	printf '%s  %s\n' "$checksum" "$plugin_slug.zip"
+} > "$output_dir/SHA256SUMS"
 printf 'PLUGIN_PACKAGE_READY %s\n' "$versioned_archive"
 printf '%s  %s\n' "$checksum" "$versioned_archive"

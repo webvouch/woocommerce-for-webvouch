@@ -5,14 +5,22 @@ on:
     tags:
       - 'v*.*.*'
 
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
@@ -37,10 +45,35 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=${GITHUB_REF_NAME#v}
-          gh release create "$GITHUB_REF_NAME" \
-            "dist/webvouch-for-woocommerce-$version.zip" \
-            dist/latest.json \
-            dist/SHA256SUMS \
-            --verify-tag \
-            --generate-notes \
-            --title "WebVouch for WooCommerce $version"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            verify_dir=$(mktemp -d)
+            trap 'rm -rf "$verify_dir"' EXIT
+            gh release download "$GITHUB_REF_NAME" \
+              --pattern "webvouch-for-woocommerce-$version.zip" \
+              --pattern latest.json \
+              --pattern SHA256SUMS \
+              --dir "$verify_dir"
+            cmp "dist/webvouch-for-woocommerce-$version.zip" "$verify_dir/webvouch-for-woocommerce-$version.zip"
+            cmp dist/latest.json "$verify_dir/latest.json"
+            cmp dist/SHA256SUMS "$verify_dir/SHA256SUMS"
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              "dist/webvouch-for-woocommerce-$version.zip" \
+              dist/webvouch-for-woocommerce.zip \
+              dist/latest.json \
+              dist/SHA256SUMS \
+              --verify-tag \
+              --generate-notes \
+              --title "WebVouch for WooCommerce $version"
+          fi
+      - name: Publish verified release to public storage
+        env:
+          S3_ENDPOINT: ${{ vars.S3_ENDPOINT }}
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+          S3_REGION: ${{ vars.S3_REGION }}
+          S3_PUBLIC_BASE_URL: ${{ vars.S3_PUBLIC_BASE_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: ./scripts/publish-release-s3.sh
